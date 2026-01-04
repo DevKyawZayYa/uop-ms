@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug: api-gateway",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "cwd": "${workspaceFolder}/services/api-gateway",
+      "program": "${workspaceFolder}/services/api-gateway/cmd/api",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Debug: product-service",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "cwd": "${workspaceFolder}/services/product-service",
+      "program": "${workspaceFolder}/services/product-service/cmd/api",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Debug: order-service",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "cwd": "${workspaceFolder}/services/order-service",
+      "program": "${workspaceFolder}/services/order-service/cmd/api",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug: all services",
+      "configurations": [
+        "Debug: api-gateway",
+        "Debug: product-service",
+        "Debug: order-service"
+      ]
+    }
+  ]
+}

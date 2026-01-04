@@ -1,14 +1,24 @@
 package config
 
-import "os"
+import (
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
+)
 
 type Config struct {
-	Port string
+	Port     string
+	MySQLDSN string
 }
 
 func Load() *Config {
+	_ = godotenv.Load("../../.env")
+	_ = godotenv.Load()
+
 	return &Config{
-		Port: getEnv("PRODUCT_SERVICE_PORT", "8081"),
+		Port:     getEnv("PRODUCT_SERVICE_PORT", "8081"),
+		MySQLDSN: mustEnv("PRODUCT_MYSQL_DSN"),
 	}
 }
 
@@ -17,4 +27,12 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func mustEnv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		log.Fatalf("missing required env: %s", key)
+	}
+	return v
 }
