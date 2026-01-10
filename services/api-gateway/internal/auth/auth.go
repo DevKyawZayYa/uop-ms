@@ -17,7 +17,7 @@ const (
 func Middleware(cfg *config.Config) gin.HandlerFunc {
 	switch strings.ToLower(cfg.AuthMode) {
 	case "cognito":
-		return CognitoMiddleware(cfg) // implemented next (stub for now)
+		return CognitoMiddleware(cfg)
 	default:
 		return DevMiddleware()
 	}
