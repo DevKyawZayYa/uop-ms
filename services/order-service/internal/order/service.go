@@ -2,15 +2,17 @@ package order
 
 import (
 	"context"
+	"log"
 	"uop-ms/services/order-service/internal/core"
 )
 
 type Service struct {
-	store *Store
+	store     *Store
+	publisher *Publisher
 }
 
-func NewService(store *Store) *Service {
-	return &Service{store: store}
+func NewService(store *Store, publisher *Publisher) *Service {
+	return &Service{store: store, publisher: publisher}
 }
 
 type CreateOrderItemInput struct {
@@ -64,8 +66,29 @@ func (s *Service) Create(ctx context.Context, userSub string, input CreateOrderI
 	if err := s.store.Create(ctx, o); err != nil {
 		return nil, core.NewInternal("ORDER_CREATE_FAILED", "Failed to create order")
 	}
-	return o, nil
 
+	// Kafka publish happens AFTER DB commit
+	traceID := "no-trace"
+	if v := ctx.Value("traceId"); v != nil {
+		if s, ok := v.(string); ok {
+			traceID = s
+		}
+	}
+
+	err := s.publisher.PublishOrderCreated(ctx, traceID, OrderCreatedPayload{
+		OrderID:  o.ID,
+		UserSub:  userSub,
+		Total:    o.TotalAmount,
+		Currency: "MYR",
+	})
+
+	if err != nil {
+		log.Println("[order-service] kafka publish failed:", err)
+	} else {
+		log.Println("[order-service] kafka published OrderCreated:", o.ID)
+	}
+
+	return o, nil
 }
 
 func (s *Service) ListMyOrders(ctx context.Context, userSub string, limit int) ([]Order, *core.AppError) {

@@ -2,28 +2,50 @@ package main
 
 import (
 	"log"
+
+	"github.com/gin-gonic/gin"
+
+	"uop-ms/pkg/events"
+
 	"uop-ms/services/order-service/internal/app/config"
 	"uop-ms/services/order-service/internal/app/db"
 	"uop-ms/services/order-service/internal/core"
 	"uop-ms/services/order-service/internal/order"
 	"uop-ms/services/order-service/internal/routes"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	// Existing config (MySQL + Port)
 	cfg := config.Load()
 
+	// Kafka config
+	kCfg := config.LoadKafkaConfig()
+
+	// DB
 	gdb := db.Connect(cfg.MySQLDSN)
 
 	if err := gdb.AutoMigrate(&order.Order{}, &order.OrderItem{}); err != nil {
 		log.Fatal(err)
 	}
 
+	// Kafka producer
+	kProducer := events.NewProducer(events.ProducerConfig{
+		Brokers: kCfg.Brokers,
+		Topic:   kCfg.Topic,
+	})
+	defer func() {
+		_ = kProducer.Close()
+	}()
+
+	// Kafka Publisher
+	publisher := order.NewPublisher(kProducer, kCfg.Topic)
+
+	// Existing DI, but Service now needs publisher Kafka
 	store := order.NewStore(gdb)
-	svc := order.NewService(store)
+	svc := order.NewService(store, publisher)
 	h := order.NewHandler(svc)
 
+	// HTTP
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
