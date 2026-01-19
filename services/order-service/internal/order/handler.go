@@ -41,7 +41,9 @@ func (h *Handler) Create(c *gin.Context) {
 		}
 	}
 
-	o, appErr := h.svc.Create(c.Request.Context(), userSub, input)
+	idempotencyKey := c.GetHeader("Idempotency-Key")
+
+	o, appErr := h.svc.Create(c.Request.Context(), userSub, idempotencyKey, input)
 	if appErr != nil {
 		c.Error(appErr)
 		return

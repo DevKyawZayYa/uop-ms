@@ -42,3 +42,15 @@ func (s *Store) ListByUser(ctx context.Context, userSub string, limit int) ([]Or
 	}
 	return items, nil
 }
+
+func (s *Store) GetByID(ctx context.Context, orderID string) (*Order, error) {
+	var o Order
+	if err := s.db.
+		WithContext(ctx).
+		Where("id = ?", orderID).
+		Preload("Items").
+		First(&o).Error; err != nil {
+		return nil, err
+	}
+	return &o, nil
+}

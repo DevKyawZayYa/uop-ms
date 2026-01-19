@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gin-gonic/gin"
 
 	"uop-ms/pkg/events"
+	"uop-ms/pkg/redisx"
 
 	"uop-ms/services/order-service/internal/app/config"
 	"uop-ms/services/order-service/internal/app/db"
@@ -28,6 +30,17 @@ func main() {
 		log.Fatal(err)
 	}
 
+	//Redis
+	rCfg := redisx.LoadConfig()
+	redisClient := redisx.New(rCfg)
+	defer func() {
+		_ = redisClient.Close()
+	}()
+
+	if err := redisClient.Ping(context.Background()); err != nil {
+		log.Fatal("redis ping failed:", err)
+	}
+
 	// Kafka producer
 	kProducer := events.NewProducer(events.ProducerConfig{
 		Brokers: kCfg.Brokers,
@@ -42,7 +55,7 @@ func main() {
 
 	// Existing DI, but Service now needs publisher Kafka
 	store := order.NewStore(gdb)
-	svc := order.NewService(store, publisher)
+	svc := order.NewService(store, publisher, redisClient.Raw())
 	h := order.NewHandler(svc)
 
 	// HTTP
