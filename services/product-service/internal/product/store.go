@@ -33,3 +33,13 @@ func (s *Store) GetByID(ctx context.Context, id string) (*Product, error) {
 	}
 	return &p, nil
 }
+
+func (s *Store) GetByIDs(ctx context.Context, ids []string) ([]Product, error) {
+	var products []Product
+
+	if err := s.db.WithContext(ctx).Where("id IN ?", ids).Find(&products).Error; err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}
