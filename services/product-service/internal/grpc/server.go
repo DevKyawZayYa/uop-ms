@@ -48,3 +48,39 @@ func (s *Server) GetProductsByIds(
 
 	return resp, nil
 }
+
+func (s *Server) ValidateProducts(
+	ctx context.Context,
+	req *productv1.ValidateProductsRequest,
+) (*productv1.ValidateProductsResponse, error) {
+	if len(req.ProductIds) == 0 {
+		return &productv1.ValidateProductsResponse{}, nil
+	}
+
+	products, err := s.store.GetByIDs(ctx, req.ProductIds)
+
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to validate products")
+	}
+
+	found := make(map[string]struct{})
+	for _, p := range products {
+		found[p.ID] = struct{}{}
+	}
+
+	valid := make([]string, 0)
+	missing := make([]string, 0)
+
+	for _, id := range req.ProductIds {
+		if _, ok := found[id]; ok {
+			valid = append(valid, id)
+		} else {
+			missing = append(missing, id)
+		}
+	}
+
+	return &productv1.ValidateProductsResponse{
+		ValidProductIds:   valid,
+		MissingProductIds: missing,
+	}, nil
+}

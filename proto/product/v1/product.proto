@@ -7,6 +7,9 @@ option go_package = "gen/product/v1;productv1";
 service ProductService {
   rpc GetProductsByIds (GetProductsByIdsRequest)
       returns (GetProductsByIdsResponse);
+
+  rpc ValidateProducts (ValidateProductsRequest)
+      returns (ValidateProductsResponse);
 }
 
 message GetProductsByIdsRequest {
@@ -21,4 +24,13 @@ message Product {
   string id = 1;
   string name = 2;
   double price = 3;
+}
+
+message ValidateProductsRequest {
+  repeated string product_ids = 1;
+}
+
+message ValidateProductsResponse {
+  repeated string valid_product_ids = 1;
+  repeated string missing_product_ids = 2;
 }

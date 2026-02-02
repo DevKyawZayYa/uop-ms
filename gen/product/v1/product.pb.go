@@ -169,6 +169,102 @@ func (x *Product) GetPrice() float64 {
 	return 0
 }
 
+type ValidateProductsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProductIds    []string               `protobuf:"bytes,1,rep,name=product_ids,json=productIds,proto3" json:"product_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateProductsRequest) Reset() {
+	*x = ValidateProductsRequest{}
+	mi := &file_product_v1_product_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateProductsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateProductsRequest) ProtoMessage() {}
+
+func (x *ValidateProductsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_product_v1_product_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateProductsRequest.ProtoReflect.Descriptor instead.
+func (*ValidateProductsRequest) Descriptor() ([]byte, []int) {
+	return file_product_v1_product_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ValidateProductsRequest) GetProductIds() []string {
+	if x != nil {
+		return x.ProductIds
+	}
+	return nil
+}
+
+type ValidateProductsResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ValidProductIds   []string               `protobuf:"bytes,1,rep,name=valid_product_ids,json=validProductIds,proto3" json:"valid_product_ids,omitempty"`
+	MissingProductIds []string               `protobuf:"bytes,2,rep,name=missing_product_ids,json=missingProductIds,proto3" json:"missing_product_ids,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ValidateProductsResponse) Reset() {
+	*x = ValidateProductsResponse{}
+	mi := &file_product_v1_product_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateProductsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateProductsResponse) ProtoMessage() {}
+
+func (x *ValidateProductsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_product_v1_product_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateProductsResponse.ProtoReflect.Descriptor instead.
+func (*ValidateProductsResponse) Descriptor() ([]byte, []int) {
+	return file_product_v1_product_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ValidateProductsResponse) GetValidProductIds() []string {
+	if x != nil {
+		return x.ValidProductIds
+	}
+	return nil
+}
+
+func (x *ValidateProductsResponse) GetMissingProductIds() []string {
+	if x != nil {
+		return x.MissingProductIds
+	}
+	return nil
+}
+
 var File_product_v1_product_proto protoreflect.FileDescriptor
 
 const file_product_v1_product_proto_rawDesc = "" +
@@ -183,9 +279,16 @@ const file_product_v1_product_proto_rawDesc = "" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05price\x18\x03 \x01(\x01R\x05price2o\n" +
+	"\x05price\x18\x03 \x01(\x01R\x05price\":\n" +
+	"\x17ValidateProductsRequest\x12\x1f\n" +
+	"\vproduct_ids\x18\x01 \x03(\tR\n" +
+	"productIds\"v\n" +
+	"\x18ValidateProductsResponse\x12*\n" +
+	"\x11valid_product_ids\x18\x01 \x03(\tR\x0fvalidProductIds\x12.\n" +
+	"\x13missing_product_ids\x18\x02 \x03(\tR\x11missingProductIds2\xce\x01\n" +
 	"\x0eProductService\x12]\n" +
-	"\x10GetProductsByIds\x12#.product.v1.GetProductsByIdsRequest\x1a$.product.v1.GetProductsByIdsResponseB\x1aZ\x18gen/product/v1;productv1b\x06proto3"
+	"\x10GetProductsByIds\x12#.product.v1.GetProductsByIdsRequest\x1a$.product.v1.GetProductsByIdsResponse\x12]\n" +
+	"\x10ValidateProducts\x12#.product.v1.ValidateProductsRequest\x1a$.product.v1.ValidateProductsResponseB\x1aZ\x18gen/product/v1;productv1b\x06proto3"
 
 var (
 	file_product_v1_product_proto_rawDescOnce sync.Once
@@ -199,18 +302,22 @@ func file_product_v1_product_proto_rawDescGZIP() []byte {
 	return file_product_v1_product_proto_rawDescData
 }
 
-var file_product_v1_product_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_product_v1_product_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_product_v1_product_proto_goTypes = []any{
 	(*GetProductsByIdsRequest)(nil),  // 0: product.v1.GetProductsByIdsRequest
 	(*GetProductsByIdsResponse)(nil), // 1: product.v1.GetProductsByIdsResponse
 	(*Product)(nil),                  // 2: product.v1.Product
+	(*ValidateProductsRequest)(nil),  // 3: product.v1.ValidateProductsRequest
+	(*ValidateProductsResponse)(nil), // 4: product.v1.ValidateProductsResponse
 }
 var file_product_v1_product_proto_depIdxs = []int32{
 	2, // 0: product.v1.GetProductsByIdsResponse.products:type_name -> product.v1.Product
 	0, // 1: product.v1.ProductService.GetProductsByIds:input_type -> product.v1.GetProductsByIdsRequest
-	1, // 2: product.v1.ProductService.GetProductsByIds:output_type -> product.v1.GetProductsByIdsResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
+	3, // 2: product.v1.ProductService.ValidateProducts:input_type -> product.v1.ValidateProductsRequest
+	1, // 3: product.v1.ProductService.GetProductsByIds:output_type -> product.v1.GetProductsByIdsResponse
+	4, // 4: product.v1.ProductService.ValidateProducts:output_type -> product.v1.ValidateProductsResponse
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -227,7 +334,7 @@ func file_product_v1_product_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_product_v1_product_proto_rawDesc), len(file_product_v1_product_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
