@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package product.v1;
+
+option go_package = "gen/product/v1;productv1";
+
+service ProductService {
+  rpc GetProductsByIds (GetProductsByIdsRequest)
+      returns (GetProductsByIdsResponse);
+}
+
+message GetProductsByIdsRequest {
+  repeated string product_ids = 1;
+}
+
+message GetProductsByIdsResponse {
+  repeated Product products = 1;
+}
+
+message Product {
+  string id = 1;
+  string name = 2;
+  double price = 3;
+}
