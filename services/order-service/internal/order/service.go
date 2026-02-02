@@ -7,30 +7,47 @@ import (
 	"time"
 	"uop-ms/services/order-service/internal/core"
 
+	ordergrpc "uop-ms/services/order-service/internal/grpc"
+
 	"github.com/redis/go-redis/v9"
 )
 
 type Service struct {
-	store     *Store
-	publisher *Publisher
-	redis     *redis.Client
+	store         *Store
+	publisher     *Publisher
+	redis         *redis.Client
+	productClient *ordergrpc.ProductClient
 }
 
-func NewService(store *Store, publisher *Publisher, redis *redis.Client) *Service {
-	return &Service{store: store, publisher: publisher, redis: redis}
+func NewService(
+	store *Store,
+	publisher *Publisher,
+	redis *redis.Client,
+	productClient *ordergrpc.ProductClient,
+) *Service {
+	return &Service{
+		store:         store,
+		publisher:     publisher,
+		redis:         redis,
+		productClient: productClient,
+	}
 }
 
 type CreateOrderItemInput struct {
-	ProductID string  `json:"productId"`
-	Quantity  int     `json:"quantity"`
-	UnitPrice float64 `json:"unitPrice"`
+	ProductID string `json:"productId"`
+	Quantity  int    `json:"quantity"`
 }
 
 type CreateOrderInput struct {
 	Items []CreateOrderItemInput `json:"items"`
 }
 
-func (s *Service) Create(ctx context.Context, userSub string, idempotencyKey string, input CreateOrderInput) (*Order, *core.AppError) {
+func (s *Service) Create(
+	ctx context.Context,
+	userSub string,
+	idempotencyKey string,
+	input CreateOrderInput,
+) (*Order, *core.AppError) {
 	if userSub == "" {
 		return nil, core.NewInternal("UNAUTHORIZED", "Missing user identity")
 	}
@@ -74,26 +91,38 @@ func (s *Service) Create(ctx context.Context, userSub string, idempotencyKey str
 		return nil, core.NewInternal("DUPLICATE_REQUEST", "Order already processed")
 	}
 
+	//Fetch products via GRPC(Once)
+	productIDs := make([]string, 0, len(input.Items))
+	for _, it := range input.Items {
+		productIDs = append(productIDs, it.ProductID)
+	}
+
+	products, err := s.productClient.GetProductsByIDs(ctx, productIDs)
+	if err != nil {
+		return nil, core.NewInternal("PRODUCT_FETCH_FAILED", "Failed to fetch products via GRPC")
+	}
+
 	// Prepare order
 	var total float64
 	items := make([]OrderItem, 0, len(input.Items))
 
 	for _, it := range input.Items {
-		if it.ProductID == "" {
-			return nil, core.NewInternal("INVALID_PRODUCT_ID", "Product id required")
-		}
 		if it.Quantity <= 0 {
 			return nil, core.NewInternal("INVALID_QUANTITY", "Quantity must be greater than zero")
 		}
-		if it.UnitPrice < 0 {
-			return nil, core.NewInternal("INVALID_PRICE", "Unit price must be non-negative")
+
+		p, ok := products[it.ProductID]
+
+		total += p.Price * float64(it.Quantity)
+
+		if !ok {
+			return nil, core.NewInternal("PRODUCT_NOT_FOUND", "Product not found")
 		}
 
-		total += it.UnitPrice * float64(it.Quantity)
 		items = append(items, OrderItem{
 			ProductID: it.ProductID,
 			Quantity:  it.Quantity,
-			UnitPrice: it.UnitPrice,
+			UnitPrice: p.Price,
 		})
 	}
 

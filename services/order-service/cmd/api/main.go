@@ -14,11 +14,19 @@ import (
 	"uop-ms/services/order-service/internal/core"
 	"uop-ms/services/order-service/internal/order"
 	"uop-ms/services/order-service/internal/routes"
+
+	ordergrpc "uop-ms/services/order-service/internal/grpc"
 )
 
 func main() {
 	// Existing config (MySQL + Port)
 	cfg := config.Load()
+
+	// gRPC Client (Product)
+	productClient, err := ordergrpc.NewProductClient("localhost:9090")
+	if err != nil {
+		log.Fatal("failed to connect to product gRPC:", err)
+	}
 
 	// Kafka config
 	kCfg := config.LoadKafkaConfig()
@@ -55,7 +63,7 @@ func main() {
 
 	// Existing DI, but Service now needs publisher Kafka
 	store := order.NewStore(gdb)
-	svc := order.NewService(store, publisher, redisClient.Raw())
+	svc := order.NewService(store, publisher, redisClient.Raw(), productClient)
 	h := order.NewHandler(svc)
 
 	// HTTP
