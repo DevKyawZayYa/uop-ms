@@ -11,6 +11,7 @@ type Product struct {
 	ID        string  `json:"id" gorm:"primaryKey; size:36"`
 	Name      string  `json:"name" gorm:"size:200;not null"`
 	Price     float64 `json:"price" gorm:"not null"`
+	Stock     int     `json:"stock" gorm:"not null"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

@@ -84,3 +84,36 @@ func (s *Server) ValidateProducts(
 		MissingProductIds: missing,
 	}, nil
 }
+
+func (s *Server) CheckAvailability(
+	ctx context.Context,
+	req *productv1.CheckAvailabilityRequest,
+) (*productv1.CheckAvailabilityResponse, error) {
+
+	insufficient := make([]*productv1.InsufficientProduct, 0)
+
+	for _, item := range req.Items {
+		p, err := s.store.GetByID(ctx, item.ProductId)
+		if err != nil {
+			insufficient = append(insufficient, &productv1.InsufficientProduct{
+				ProductId: item.ProductId,
+				Requested: item.Quantity,
+				Available: 0,
+			})
+			continue
+		}
+
+		if p.Stock < int(item.Quantity) {
+			insufficient = append(insufficient, &productv1.InsufficientProduct{
+				ProductId: item.ProductId,
+				Requested: item.Quantity,
+				Available: int32(p.Stock),
+			})
+		}
+	}
+
+	return &productv1.CheckAvailabilityResponse{
+		Available:    len(insufficient) == 0,
+		Insufficient: insufficient,
+	}, nil
+}
