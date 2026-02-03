@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProductService_GetProductsByIds_FullMethodName  = "/product.v1.ProductService/GetProductsByIds"
-	ProductService_ValidateProducts_FullMethodName  = "/product.v1.ProductService/ValidateProducts"
-	ProductService_CheckAvailability_FullMethodName = "/product.v1.ProductService/CheckAvailability"
+	ProductService_GetProductsByIds_FullMethodName        = "/product.v1.ProductService/GetProductsByIds"
+	ProductService_ValidateProducts_FullMethodName        = "/product.v1.ProductService/ValidateProducts"
+	ProductService_CheckAvailability_FullMethodName       = "/product.v1.ProductService/CheckAvailability"
+	ProductService_ResolveProductsForOrder_FullMethodName = "/product.v1.ProductService/ResolveProductsForOrder"
 )
 
 // ProductServiceClient is the client API for ProductService service.
@@ -31,6 +32,7 @@ type ProductServiceClient interface {
 	GetProductsByIds(ctx context.Context, in *GetProductsByIdsRequest, opts ...grpc.CallOption) (*GetProductsByIdsResponse, error)
 	ValidateProducts(ctx context.Context, in *ValidateProductsRequest, opts ...grpc.CallOption) (*ValidateProductsResponse, error)
 	CheckAvailability(ctx context.Context, in *CheckAvailabilityRequest, opts ...grpc.CallOption) (*CheckAvailabilityResponse, error)
+	ResolveProductsForOrder(ctx context.Context, in *ResolveProductsForOrderRequest, opts ...grpc.CallOption) (*ResolveProductsForOrderResponse, error)
 }
 
 type productServiceClient struct {
@@ -71,6 +73,16 @@ func (c *productServiceClient) CheckAvailability(ctx context.Context, in *CheckA
 	return out, nil
 }
 
+func (c *productServiceClient) ResolveProductsForOrder(ctx context.Context, in *ResolveProductsForOrderRequest, opts ...grpc.CallOption) (*ResolveProductsForOrderResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveProductsForOrderResponse)
+	err := c.cc.Invoke(ctx, ProductService_ResolveProductsForOrder_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductServiceServer is the server API for ProductService service.
 // All implementations must embed UnimplementedProductServiceServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type ProductServiceServer interface {
 	GetProductsByIds(context.Context, *GetProductsByIdsRequest) (*GetProductsByIdsResponse, error)
 	ValidateProducts(context.Context, *ValidateProductsRequest) (*ValidateProductsResponse, error)
 	CheckAvailability(context.Context, *CheckAvailabilityRequest) (*CheckAvailabilityResponse, error)
+	ResolveProductsForOrder(context.Context, *ResolveProductsForOrderRequest) (*ResolveProductsForOrderResponse, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedProductServiceServer) ValidateProducts(context.Context, *Vali
 }
 func (UnimplementedProductServiceServer) CheckAvailability(context.Context, *CheckAvailabilityRequest) (*CheckAvailabilityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckAvailability not implemented")
+}
+func (UnimplementedProductServiceServer) ResolveProductsForOrder(context.Context, *ResolveProductsForOrderRequest) (*ResolveProductsForOrderResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveProductsForOrder not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 func (UnimplementedProductServiceServer) testEmbeddedByValue()                        {}
@@ -172,6 +188,24 @@ func _ProductService_CheckAvailability_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProductService_ResolveProductsForOrder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveProductsForOrderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductServiceServer).ResolveProductsForOrder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProductService_ResolveProductsForOrder_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductServiceServer).ResolveProductsForOrder(ctx, req.(*ResolveProductsForOrderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProductService_ServiceDesc is the grpc.ServiceDesc for ProductService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckAvailability",
 			Handler:    _ProductService_CheckAvailability_Handler,
+		},
+		{
+			MethodName: "ResolveProductsForOrder",
+			Handler:    _ProductService_ResolveProductsForOrder_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

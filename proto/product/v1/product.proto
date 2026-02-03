@@ -13,6 +13,9 @@ service ProductService {
 
   rpc CheckAvailability (CheckAvailabilityRequest)
     returns (CheckAvailabilityResponse);
+
+  rpc ResolveProductsForOrder(ResolveProductsForOrderRequest)
+    returns (ResolveProductsForOrderResponse);
 }
 
 message GetProductsByIdsRequest {
@@ -56,4 +59,24 @@ message InsufficientProduct {
 message CheckAvailabilityResponse {
   bool available = 1;
   repeated InsufficientProduct insufficient = 2;
+}
+
+message ResolveProductItem {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message ResolvedProduct {
+  string product_id = 1;
+  string name = 2;
+  double unit_price = 3;
+  int32 quantity = 4;
+}
+
+message ResolveProductsForOrderRequest{
+  repeated ResolveProductItem items = 1;
+}
+
+message ResolveProductsForOrderResponse{
+  repeated ResolvedProduct products = 1;
 }

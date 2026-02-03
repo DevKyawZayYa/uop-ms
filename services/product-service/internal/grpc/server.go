@@ -117,3 +117,33 @@ func (s *Server) CheckAvailability(
 		Insufficient: insufficient,
 	}, nil
 }
+
+func (s *Server) ResolveProductsForOrder(
+	ctx context.Context,
+	req *productv1.ResolveProductsForOrderRequest,
+) (*productv1.ResolveProductsForOrderResponse, error) {
+
+	resolved := make([]*productv1.ResolvedProduct, 0, len(req.Items))
+
+	for _, item := range req.Items {
+		p, err := s.store.GetByID(ctx, item.ProductId)
+		if err != nil {
+			return nil, status.Errorf(
+				codes.NotFound,
+				"product %s not found",
+				item.ProductId,
+			)
+		}
+
+		resolved = append(resolved, &productv1.ResolvedProduct{
+			ProductId: p.ID,
+			Name:      p.Name,
+			UnitPrice: p.Price,
+			Quantity:  item.Quantity,
+		})
+	}
+
+	return &productv1.ResolveProductsForOrderResponse{
+		Products: resolved,
+	}, nil
+}
