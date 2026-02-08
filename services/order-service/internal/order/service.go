@@ -49,12 +49,12 @@ func (s *Service) Create(
 	input CreateOrderInput,
 ) (*Order, *core.AppError) {
 	if userSub == "" {
-		return nil, core.NewInternal("UNAUTHORIZED", "Missing user identity")
+		return nil, core.NewBadRequest("UNAUTHORIZED", "Missing user identity")
 	}
 
 	//redis IdempotencyKey
 	if idempotencyKey == "" {
-		return nil, core.NewInternal(
+		return nil, core.NewBadRequest(
 			"IDEMPOTENCY_KEY_REQUIRED",
 			"Missing Idempotency-Key header",
 		)
@@ -75,7 +75,7 @@ func (s *Service) Create(
 	).Result()
 
 	if err != nil {
-		return nil, core.NewInternal("REDIS_ERROR", "Failed to check idempotency")
+		return nil, core.NewServiceUnavailable("REDIS_ERROR", "Failed to check idempotency")
 	}
 
 	if !ok {
@@ -88,7 +88,7 @@ func (s *Service) Create(
 				return existing, nil
 			}
 		}
-		return nil, core.NewInternal("DUPLICATE_REQUEST", "Order already processed")
+		return nil, core.NewConflict("DUPLICATE_REQUEST", "Order already processed")
 	}
 
 	//Fetch products via GRPC(Once)

@@ -12,6 +12,26 @@ func (e *AppError) Error() string {
 	return e.Code + ": " + e.Message
 }
 
+func New(code, msg string, status int) *AppError {
+	return &AppError{
+		Status:  status,
+		Code:    code,
+		Message: msg,
+	}
+}
+
 func NewInternal(code, msg string) *AppError {
-	return &AppError{Status: http.StatusInternalServerError, Code: code, Message: msg}
+	return New(code, msg, http.StatusInternalServerError)
+}
+
+func NewBadRequest(code, msg string) *AppError {
+	return New(code, msg, http.StatusBadRequest)
+}
+
+func NewConflict(code, msg string) *AppError {
+	return New(code, msg, http.StatusConflict)
+}
+
+func NewServiceUnavailable(code, msg string) *AppError {
+	return New(code, msg, http.StatusServiceUnavailable)
 }
