@@ -48,11 +48,13 @@ func (s *Service) Create(
 	idempotencyKey string,
 	input CreateOrderInput,
 ) (*Order, *core.AppError) {
+
+	// 1. Validate user identity
 	if userSub == "" {
 		return nil, core.NewBadRequest("UNAUTHORIZED", "Missing user identity")
 	}
 
-	//redis IdempotencyKey
+	// 2. redis IdempotencyKey
 	if idempotencyKey == "" {
 		return nil, core.NewBadRequest(
 			"IDEMPOTENCY_KEY_REQUIRED",
@@ -60,11 +62,12 @@ func (s *Service) Create(
 		)
 	}
 
+	// 3. Validate request payload
 	if len(input.Items) == 0 {
-		return nil, core.NewInternal("EMPTY_ORDER", "Order must contain at least one item")
+		return nil, core.NewBadRequest("EMPTY_ORDER", "Order must contain at least one item")
 	}
 
-	//idemp key check before DB
+	//4. idemp key check before DB
 	redisKey := "idemp:order:" + userSub + ":" + idempotencyKey
 
 	ok, err := s.redis.SetNX(
@@ -73,13 +76,12 @@ func (s *Service) Create(
 		"processing",
 		24*time.Hour,
 	).Result()
-
 	if err != nil {
 		return nil, core.NewServiceUnavailable("REDIS_ERROR", "Failed to check idempotency")
 	}
 
+	// 5. Short-circuit duplicate requests
 	if !ok {
-		// Request already processed
 		val, err := s.redis.Get(ctx, redisKey).Result()
 		if err == nil && strings.HasPrefix(val, "order:") {
 			orderID := strings.TrimPrefix(val, "order:")
@@ -91,38 +93,71 @@ func (s *Service) Create(
 		return nil, core.NewConflict("DUPLICATE_REQUEST", "Order already processed")
 	}
 
-	//Fetch products via GRPC(Once)
+	// 6. Collect product IDs and build grpc order items
 	productIDs := make([]string, 0, len(input.Items))
-	for _, it := range input.Items {
-		productIDs = append(productIDs, it.ProductID)
-	}
-
-	products, err := s.productClient.GetProductsByIDs(ctx, productIDs)
-	if err != nil {
-		return nil, core.NewInternal("PRODUCT_FETCH_FAILED", "Failed to fetch products via GRPC")
-	}
-
-	// Prepare order
-	var total float64
-	items := make([]OrderItem, 0, len(input.Items))
+	grpcItems := make([]ordergrpc.OrderItem, 0, len(input.Items))
 
 	for _, it := range input.Items {
 		if it.Quantity <= 0 {
-			return nil, core.NewInternal("INVALID_QUANTITY", "Quantity must be greater than zero")
+			return nil, core.NewBadRequest("INVALID_QUANTITY", "Quantity must be greater than zero")
 		}
 
-		p, ok := products[it.ProductID]
-
-		total += p.Price * float64(it.Quantity)
-
-		if !ok {
-			return nil, core.NewInternal("PRODUCT_NOT_FOUND", "Product not found")
-		}
-
-		items = append(items, OrderItem{
+		productIDs = append(productIDs, it.ProductID)
+		grpcItems = append(grpcItems, ordergrpc.OrderItem{
 			ProductID: it.ProductID,
 			Quantity:  it.Quantity,
-			UnitPrice: p.Price,
+		})
+	}
+
+	// 7. Validate product existence via product-service
+	_, missing, err := s.productClient.ValidateProducts(ctx, productIDs)
+	if err != nil {
+		return nil, core.NewServiceUnavailable(
+			"PRODUCT_SERVICE_UNAVAILABLE",
+			"Product service unavailable",
+		)
+	}
+	if len(missing) > 0 {
+		return nil, core.NewBadRequest(
+			"PRODUCT_NOT_FOUND",
+			"Missing products: "+strings.Join(missing, ","),
+		)
+	}
+
+	// 8. Check inventory availability via product-service
+	available, _, err := s.productClient.CheckAvailability(ctx, grpcItems)
+	if err != nil {
+		return nil, core.NewServiceUnavailable(
+			"PRODUCT_SERVICE_UNAVAILABLE",
+			"Product service unavailable",
+		)
+	}
+	if !available {
+		return nil, core.NewConflict(
+			"INSUFFICIENT_STOCK",
+			"Some items are out of stock",
+		)
+	}
+
+	// 9. Resolve authoritative product snapshot for order
+	resolvedProducts, err := s.productClient.ResolveProductsForOrder(ctx, grpcItems)
+	if err != nil {
+		return nil, core.NewServiceUnavailable(
+			"PRODUCT_SERVICE_UNAVAILABLE",
+			"Failed to resolve products for order",
+		)
+	}
+
+	// 10. Compute order totals from resolved snapshot
+	var total float64
+	items := make([]OrderItem, 0, len(resolvedProducts))
+
+	for _, rp := range resolvedProducts {
+		total += rp.UnitPrice * float64(rp.Quantity)
+		items = append(items, OrderItem{
+			ProductID: rp.ProductID,
+			Quantity:  rp.Quantity,
+			UnitPrice: rp.UnitPrice,
 		})
 	}
 
@@ -133,12 +168,12 @@ func (s *Service) Create(
 		Items:       items,
 	}
 
-	// DB hit
+	// 11. Persist order in database
 	if err := s.store.Create(ctx, o); err != nil {
 		return nil, core.NewInternal("ORDER_CREATE_FAILED", "Failed to create order")
 	}
 
-	// Kafka publish happens AFTER DB commit
+	// 12. Publish OrderCreated event
 	traceID := "no-trace"
 	if v := ctx.Value("traceId"); v != nil {
 		if s, ok := v.(string); ok {
@@ -146,20 +181,18 @@ func (s *Service) Create(
 		}
 	}
 
-	err = s.publisher.PublishOrderCreated(ctx, traceID, OrderCreatedPayload{
+	if err := s.publisher.PublishOrderCreated(ctx, traceID, OrderCreatedPayload{
 		OrderID:  o.ID,
 		UserSub:  userSub,
 		Total:    o.TotalAmount,
 		Currency: "MYR",
-	})
-
-	if err != nil {
+	}); err != nil {
 		log.Println("[order-service] kafka publish failed:", err)
 	} else {
 		log.Println("[order-service] kafka published OrderCreated:", o.ID)
 	}
 
-	// store in redis
+	// 13. store in redis
 	_ = s.redis.Set(
 		ctx,
 		redisKey,
